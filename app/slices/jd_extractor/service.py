@@ -1,12 +1,6 @@
-from openai import OpenAI
-from app.core.config import settings
 from .models import ExtractedJobDescription
+from app.core.aiClient import client
 
-# We configure the OpenAI client to point to Groq's fast, free endpoint
-client = OpenAI(
-    base_url="https://api.groq.com/openai/v1",
-    api_key=settings.OPENAI_API_KEY
-)
 
 def extract_jd_service(raw_text: str) -> ExtractedJobDescription:
     # We give the AI clear instructions and a strict JSON template to follow
