@@ -1,4 +1,3 @@
--e file:///home/danish-ansari/Desktop/ProjectDev/DanishDev&Projects/AiCareerToolkitBE
 annotated-doc==0.0.5
 annotated-types==0.8.0
 anyio==4.14.2
