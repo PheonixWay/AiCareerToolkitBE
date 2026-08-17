@@ -22,18 +22,52 @@ def extract_jd_service(raw_text: str) -> JDExtractionModel:
     """
 
     # Calling AI Client
-    response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
-        messages=[
-            {
-                "role": "system", 
-                "content": "You are a highly analytical AI that strictly outputs valid JSON matching the exact schema provided by the user, without any markdown formatting or extra text."
-            },
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        temperature=0.1 # Low temperature ensures strict fact extraction
-    )
+    # response = client.chat.completions.create(
+    #     model="llama-3.1-8b-instant",
+    #     messages=[
+    #         {
+    #             "role": "system", 
+    #             "content": "You are a highly analytical AI that strictly outputs valid JSON matching the exact schema provided by the user, without any markdown formatting or extra text."
+    #         },
+    #         {"role": "user", "content": prompt}
+    #     ],
+    #     response_format={"type": "json_object"},
+    #     temperature=0.1 # Low temperature ensures strict fact extraction
+    # )
+
+    try:
+        # Try best model first
+        response = client.chat.completions.create(
+            model="openai/gpt-oss-20b",
+            messages=[
+                {
+                    "role": "system", 
+                    "content": "You are a highly analytical AI that strictly outputs valid JSON matching the exact schema provided by the user, without any markdown formatting or extra text."
+                },
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.1 # Low temperature ensures strict fact extraction
+        )
+    except Exception as e:
+        if "404" in str(e) or "model_not_found" in str(e):
+            print("70B Model is down/busy. Switching to 8B Instant fallback...")
+            # fallback to other model
+            response = client.chat.completions.create(
+                model="qwen/qwen3.6-27b",
+                messages=[
+                    {
+                        "role": "system", 
+                        "content": "You are a highly analytical AI that strictly outputs valid JSON matching the exact schema provided by the user, without any markdown formatting or extra text."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.1 # Low temperature ensures strict fact extraction
+            )
+        else:
+            raise e
+
 
     result_text = response.choices[0].message.content
     
