@@ -60,4 +60,6 @@ class JDExtractionModel(BaseModel):
         if not self.location or self.location.strip().lower() in ["none", "null", "na", "n/a"]:
             self.location = "Not Specified"
         return self
-
+        
+class JobDescriptionRequest(BaseModel):
+    raw_text: str
