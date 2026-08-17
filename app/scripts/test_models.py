@@ -5,7 +5,7 @@ from openai import OpenAI
 # Load .env if present
 load_dotenv()
 
-api_key = os.getenv("OPENAI_API_KEY", "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")
+api_key = os.getenv("OPENAI_API_KEY", "pass here api key")
 
 client = OpenAI(
     base_url="https://api.groq.com/openai/v1",
