@@ -8,6 +8,8 @@ from app.slices.auth import models as auth_models
 from app.core.security import get_password_hash
 from app.core.config import settings
 from app.slices.auth.router import router as auth_router
+from app.slices.memory import models as memory_models  # noqa: F401 - registers CareerMemory table
+from app.slices.memory.router import router as memory_router
 app = FastAPI(
     title="AI Career Toolkit API",
     description="Backend API for JD Extraction and Resume Optimization. Built with Modular Monolith architecture.",
@@ -18,7 +20,16 @@ app = FastAPI(
     }
 )
 
-# Create tables in Postgres
+from sqlalchemy import text
+
+# Enable pgvector extension and create tables in Postgres
+try:
+    with engine.connect() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+        conn.commit()
+except Exception as e:
+    print(f"Note on pgvector extension: {e}")
+
 Base.metadata.create_all(bind=engine)
 
 # Seed Data Function
@@ -55,3 +66,4 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(health_router)
 app.include_router(jd_router)
+app.include_router(memory_router)
