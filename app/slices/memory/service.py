@@ -15,6 +15,9 @@ from .schemas import (
     IngestResponse,
     DeleteResponse,
     UpdateMemoryRequest,
+    RetrievalTestRequest,
+    RetrievalResultItem,
+    RetrievalTestResponse,
 )
 
 # Instantiate the new google.genai client
@@ -217,3 +220,53 @@ def update_memory_service(
     db.commit()
     db.refresh(memory)
     return MemoryCardResponse.model_validate(memory)
+
+
+def test_retrieval_service(
+    request: RetrievalTestRequest, db: Session
+) -> RetrievalTestResponse:
+    """Dev/Debug service: Generate query vector with task_type='retrieval_query' and perform Cosine Similarity search in pgvector."""
+    query_text = request.query.strip()
+    if not query_text:
+        raise HTTPException(status_code=400, detail="Query cannot be empty.")
+
+    # Generate embedding vector for query
+    query_embedding = _get_embedding(query_text, task_type="retrieval_query")
+
+    # Cosine distance in pgvector is <=>
+    # Cosine similarity = 1 - cosine_distance
+    distance_expr = CareerMemory.embedding.cosine_distance(query_embedding)
+
+    rows = (
+        db.query(
+            CareerMemory.id,
+            CareerMemory.title,
+            CareerMemory.category,
+            CareerMemory.content,
+            CareerMemory.created_at,
+            (1 - distance_expr).label("similarity_score"),
+        )
+        .filter(CareerMemory.embedding.isnot(None))
+        .order_by(distance_expr.asc())
+        .limit(max(1, min(request.top_k, 50)))
+        .all()
+    )
+
+    results = [
+        RetrievalResultItem(
+            id=row.id,
+            title=row.title,
+            category=row.category,
+            content=row.content,
+            similarity_score=float(row.similarity_score) if row.similarity_score is not None else 0.0,
+            created_at=row.created_at,
+        )
+        for row in rows
+    ]
+
+    return RetrievalTestResponse(
+        query=query_text,
+        total_results=len(results),
+        results=results,
+    )
+
