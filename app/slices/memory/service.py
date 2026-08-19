@@ -1,6 +1,6 @@
 # app/slices/memory/service.py
 import json
-import pymupdf  # replaces deprecated `import fitz`
+import pymupdf 
 from sqlalchemy.orm import Session
 from fastapi import UploadFile, HTTPException
 from google import genai
@@ -17,13 +17,13 @@ from .schemas import (
     UpdateMemoryRequest,
 )
 
-# Instantiate the new google.genai client (replaces deprecated google.generativeai)
+# Instantiate the new google.genai client
 _genai_client = genai.Client(api_key=settings.GOOGLE_API_KEY)
 
 
 # ─── INTERNAL HELPER: Generate Embedding via Google Gemini ───────────────────
-def _get_embedding(text: str) -> list[float]:
-    """Call Google Gemini text-embedding-004 to generate a 768-dim vector.
+def _get_embedding(text: str,task_type: str) -> list[float]:
+    """Call Google Gemini text-embedding-001 to generate a 3072-dim vector.
     
     Uses the new google.genai SDK (google-genai package).
     """
@@ -31,6 +31,9 @@ def _get_embedding(text: str) -> list[float]:
         result = _genai_client.models.embed_content(
             model="models/gemini-embedding-001",
             contents=text,
+            config=types.EmbedContentConfig(
+                task_type=task_type
+            ),
         )
         return result.embeddings[0].values
     except Exception as e:
@@ -142,7 +145,7 @@ def ingest_pdf_service(file: UploadFile, db: Session) -> IngestResponse:
     # Step 4 + 5: Embed each chunk and store in PostgreSQL pgvector
     saved_count = 0
     for chunk in parsed.chunks:
-        embedding = _get_embedding(chunk.content)
+        embedding = _get_embedding(chunk.content,task_type="retrieval_document")
         memory = CareerMemory(
             category=chunk.category.lower().strip(),
             title=chunk.title.strip() if chunk.title else None,
@@ -161,7 +164,7 @@ def ingest_pdf_service(file: UploadFile, db: Session) -> IngestResponse:
 
 def add_memory_service(request: AddMemoryRequest, db: Session) -> MemoryCardResponse:
     """Direct text input: skip PDF extraction & LLM parsing → generate embedding → store."""
-    embedding = _get_embedding(request.content)
+    embedding = _get_embedding(request.content,task_type="retrieval_document")
     memory = CareerMemory(
         category=request.category.lower().strip(),
         title=request.title.strip() if request.title else None,
@@ -209,7 +212,7 @@ def update_memory_service(
         memory.category = request.category.lower().strip()  # type: ignore[assignment]
     if request.content is not None and request.content.strip():
         memory.content = request.content.strip()  # type: ignore[assignment]
-        memory.embedding = _get_embedding(request.content.strip())  # type: ignore[assignment]
+        memory.embedding = _get_embedding(request.content.strip(),task_type="retrieval_document") 
 
     db.commit()
     db.refresh(memory)
