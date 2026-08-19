@@ -9,6 +9,8 @@ from .schemas import (
     IngestResponse,
     DeleteResponse,
     UpdateMemoryRequest,
+    RetrievalTestRequest,
+    RetrievalTestResponse,
 )
 from .service import (
     ingest_pdf_service,
@@ -16,9 +18,22 @@ from .service import (
     get_all_memories_service,
     delete_memory_service,
     update_memory_service,
+    test_retrieval_service,
 )
 
 router = APIRouter(prefix="/api/v1/memory", tags=["memory"])
+
+
+@router.post("/test-retrieval", response_model=RetrievalTestResponse)
+def test_retrieval(
+    request: RetrievalTestRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Dev/Debug endpoint: embed a query with Google Gemini and return the top-K most
+    semantically similar career memory chunks with cosine similarity scores.
+    """
+    return test_retrieval_service(request, db)
 
 
 @router.post("/ingest-pdf", response_model=IngestResponse)
