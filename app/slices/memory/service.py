@@ -4,7 +4,7 @@ import pymupdf
 from sqlalchemy.orm import Session
 from fastapi import UploadFile, HTTPException
 from google import genai
-
+from google.genai import types
 from app.core.aiClient import client
 from app.core.config import settings
 from .models import CareerMemory
