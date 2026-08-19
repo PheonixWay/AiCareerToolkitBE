@@ -48,3 +48,28 @@ class UpdateMemoryRequest(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
     category: Optional[str] = None
+
+
+# ─── Retrieval Test Schemas ──────────────────────────────────────────────────
+class RetrievalTestRequest(BaseModel):
+    query: str
+    top_k: int = 5
+
+
+class RetrievalResultItem(BaseModel):
+    id: int
+    title: Optional[str] = None
+    category: str
+    content: str
+    similarity_score: float
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class RetrievalTestResponse(BaseModel):
+    query: str
+    total_results: int
+    results: list[RetrievalResultItem]
+
